@@ -1,0 +1,124 @@
+# Create the project folder and files for the user in a structured manner.
+
+import os
+
+# Base directory for the project
+base_dir = "/mnt/data/rapor-system"
+
+# File contents
+files = {
+    "app.py": """from flask import Flask, render_template, request, send_file
+import pandas as pd
+
+app = Flask(__name__)
+
+data = []
+
+@app.route('/')
+def index():
+    return render_template('form.html')
+
+@app.route('/submit', methods=['POST'])
+def submit():
+    global data
+    # Ambil data dari form
+    nama = request.form['nama']
+    kelas = request.form['kelas']
+    mapel = request.form['mapel']
+    nilai = request.form['nilai']
+    keterangan = request.form['keterangan']
+
+    # Tambahkan data ke list
+    data.append({
+        'Nama': nama,
+        'Kelas': kelas,
+        'Mata Pelajaran': mapel,
+        'Nilai': nilai,
+        'Keterangan': keterangan
+    })
+
+    return render_template('report.html', data=data)
+
+@app.route('/export')
+def export():
+    global data
+    if not data:
+        return "Tidak ada data untuk diekspor!"
+
+    # Buat DataFrame dan simpan ke Excel
+    df = pd.DataFrame(data)
+    file_path = "rapor.xlsx"
+    df.to_excel(file_path, index=False)
+
+    # Kirim file untuk diunduh
+    return send_file(file_path, as_attachment=True)
+
+if __name__ == '__main__':
+    app.run(debug=True)
+""",
+    "templates/form.html": """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Input Rapor</title>
+</head>
+<body>
+    <h1>Form Input Rapor</h1>
+    <form action="/submit" method="post">
+        <label>Nama:</label><br>
+        <input type="text" name="nama" required><br>
+        <label>Kelas:</label><br>
+        <input type="text" name="kelas" required><br>
+        <label>Mata Pelajaran:</label><br>
+        <input type="text" name="mapel" required><br>
+        <label>Nilai:</label><br>
+        <input type="number" name="nilai" required><br>
+        <label>Keterangan:</label><br>
+        <input type="text" name="keterangan"><br><br>
+        <button type="submit">Simpan</button>
+    </form>
+</body>
+</html>
+""",
+    "templates/report.html": """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Rapor</title>
+</head>
+<body>
+    <h1>Data Rapor</h1>
+    <table border="1">
+        <tr>
+            <th>Nama</th>
+            <th>Kelas</th>
+            <th>Mata Pelajaran</th>
+            <th>Nilai</th>
+            <th>Keterangan</th>
+        </tr>
+        {% for row in data %}
+        <tr>
+            <td>{{ row['Nama'] }}</td>
+            <td>{{ row['Kelas'] }}</td>
+            <td>{{ row['Mata Pelajaran'] }}</td>
+            <td>{{ row['Nilai'] }}</td>
+            <td>{{ row['Keterangan'] }}</td>
+        </tr>
+        {% endfor %}
+    </table><br>
+    <a href="/export">Export ke Excel</a>
+</body>
+</html>
+"""
+}
+
+# Create project structure
+for path, content in files.items():
+    file_path = os.path.join(base_dir, path)
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    with open(file_path, "w", encoding="utf-8") as file:
+        file.write(content)
+
+base_dir
